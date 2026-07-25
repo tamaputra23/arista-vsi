@@ -39,12 +39,10 @@ function getSpec() {
   };
 }
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(null, {
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(getSpec(), {
   customCss: ".swagger-ui .topbar { display: none }",
   customSiteTitle: "Vehicle Stock API — Docs",
-  swaggerOptions: {
-    url: "/api-docs.json",  // fetch spec dynamically — picks up SWAGGER_URL at request time
-  },
+  
 }));
 app.get("/api-docs.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
