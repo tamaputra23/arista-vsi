@@ -30,7 +30,7 @@ pipeline {
         GHCR_REGISTRY = 'ghcr.io'
         PREVIOUS_IMAGE_TAG = ''
         COMPOSE_PROJECT_NAME = 'arista-vsi'
-        HOME_DIR = '/home/tama/arista-vsi'
+        HOME_DIR = '/home/tama/arista'
         SERVICE = 'arista-vsi'
     }
 
