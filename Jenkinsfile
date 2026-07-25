@@ -9,7 +9,7 @@
  *                Use the short SHA from GitHub Actions build, e.g. "abc1234"
  *
  * Prerequisites on Jenkins server:
- *   - Docker + docker-compose installed
+ *   - Docker + docker compose installed
  *   - GitHub PAT with read:packages scope stored as Jenkins credential (used by SCM + GHCR login)
  *   - Environment file at /etc/vehicle-stock/.env.production (managed by Jenkins)
  */
@@ -58,7 +58,7 @@ pipeline {
                     echo "Pulling $IMAGE ..."
                     docker pull "$IMAGE"
 
-                    # Tag with a stable name for docker-compose
+                    # Tag with a stable name for docker compose
                     docker tag "$IMAGE" "${GHCR_REGISTRY}/${GITHUB_REPO}:deploying"
                 '''
             }
@@ -70,7 +70,7 @@ pipeline {
                     echo "Running Prisma migrations..."
 
                     # The app container has prisma migrate in its node_modules
-                    docker-compose -f docker-compose.prod.yml run --rm \
+                    docker compose -f docker compose.prod.yml run --rm \
                         -e IMAGE_TAG=deploying \
                         app npx prisma migrate deploy
                 '''
@@ -92,7 +92,7 @@ pipeline {
 
                     sh '''
                         export IMAGE_TAG=deploying
-                        docker-compose -f docker-compose.prod.yml up -d app db
+                        docker compose -f docker compose.prod.yml up -d app db
                     '''
                 }
             }
@@ -149,7 +149,7 @@ pipeline {
                 if (env.PREVIOUS_IMAGE_TAG && env.PREVIOUS_IMAGE_TAG != 'none') {
                     sh """
                         export IMAGE_TAG=${env.PREVIOUS_IMAGE_TAG}
-                        docker-compose -f docker-compose.prod.yml up -d app db
+                        docker compose -f docker compose.prod.yml up -d app db
                         echo "Rolled back to ${env.PREVIOUS_IMAGE_TAG}"
                     """
                 } else {
