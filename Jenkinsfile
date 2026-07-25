@@ -71,7 +71,7 @@ pipeline {
 
                     # The app container has prisma migrate in its node_modules
                     docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm \
-                        -e IMAGE_TAG=deploying \
+                        -e IMAGE_TAG=${IMAGE_TAG} \
                         app npx prisma migrate deploy
                 '''
             }
@@ -91,7 +91,7 @@ pipeline {
                     }
 
                     sh '''
-                        export IMAGE_TAG=deploying
+                        export IMAGE_TAG=${IMAGE_TAG}
                         docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app db
                     '''
                 }
