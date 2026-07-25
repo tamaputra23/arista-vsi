@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    container_name: vehicle-stock-api
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-vehicle_stock}?schema=public
+      - PORT=3000
+      - NODE_ENV=${NODE_ENV:-production}
+      - API_KEYS=${API_KEYS:-test-key-1}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CACHE_TTL=${CACHE_TTL:-300}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vehicle-stock-net
+
+  db:
+    image: postgres:15-alpine
+    container_name: vehicle-stock-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=vehicle_stock
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vehicle_stock"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - vehicle-stock-net
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  vehicle-stock-net:
+    driver: bridge

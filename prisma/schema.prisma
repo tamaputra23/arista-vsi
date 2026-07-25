@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  code      String    @id @db.VarChar(20)
+  name      String    @db.VarChar(200)
+  createdAt DateTime  @default(now()) @map("created_at")
+  branches  Branch[]
+  vehicles  Vehicle[]
+
+  @@map("company")
+}
+
+model Branch {
+  code        String    @id @db.VarChar(20)
+  companyCode String    @map("company_code") @db.VarChar(20)
+  name        String    @db.VarChar(200)
+  location    String?   @db.VarChar(500)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  company     Company   @relation(fields: [companyCode], references: [code], onDelete: Cascade)
+  vehicles    Vehicle[]
+
+  @@index([companyCode])
+  @@map("branch")
+}
+
+model Vehicle {
+  id            String                  @id @default(cuid())
+  externalId    String                  @map("external_id") @db.VarChar(50)
+  companyCode   String                  @map("company_code") @db.VarChar(20)
+  branchCode    String                  @map("branch_code") @db.VarChar(20)
+  brand         String                  @db.VarChar(100)
+  model         String                  @db.VarChar(100)
+  year          Int
+  color         String                  @db.VarChar(50)
+  chassisNumber String                  @unique @map("chassis_number") @db.VarChar(50)
+  engineNumber  String                  @map("engine_number") @db.VarChar(50)
+  status        String                  @db.VarChar(20)
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
+  company       Company                 @relation(fields: [companyCode], references: [code], onDelete: Cascade)
+  branch        Branch                  @relation(fields: [branchCode], references: [code], onDelete: Cascade)
+  statusHistory VehicleStatusHistory[]
+
+  @@unique([externalId, companyCode, branchCode])
+  @@index([externalId, companyCode, branchCode])
+  @@index([companyCode])
+  @@index([branchCode])
+  @@index([status])
+  @@index([brand, model])
+  @@index([updatedAt])
+  @@map("vehicle")
+}
+
+model VehicleStatusHistory {
+  id             String   @id @default(cuid())
+  vehicleId      String   @map("vehicle_id")
+  previousStatus String   @map("previous_status") @db.VarChar(20)
+  newStatus      String   @map("new_status") @db.VarChar(20)
+  changedAt      DateTime @map("changed_at")
+  changedBy      String   @map("changed_by") @db.VarChar(100)
+  changeReason   String?  @map("change_reason") @db.VarChar(500)
+  vehicle        Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId])
+  @@index([changedAt])
+  @@index([vehicleId, changedAt])
+  @@map("vehicle_status_history")
+}
+
+model IntegrationLog {
+  id                    String   @id @default(cuid())
+  correlationId         String   @unique @map("correlation_id") @db.VarChar(50)
+  requestTimestamp      DateTime @map("request_timestamp")
+  endpoint              String   @db.VarChar(100)
+  httpMethod            String   @map("http_method") @db.VarChar(10)
+  externalId            String?  @map("external_id") @db.VarChar(50)
+  success               Boolean
+  httpStatusCode        Int      @map("http_status_code")
+  errorMessage          String?  @map("error_message") @db.VarChar(500)
+  processingTimeMs      Int      @map("processing_time_ms")
+  requestPayloadSummary String?  @map("request_payload_summary") @db.VarChar(1000)
+  companyCode           String?  @map("company_code") @db.VarChar(20)
+
+  @@index([correlationId])
+  @@index([requestTimestamp])
+  @@index([externalId])
+  @@index([success])
+  @@index([companyCode])
+  @@index([endpoint, requestTimestamp])
+  @@map("integration_log")
+}

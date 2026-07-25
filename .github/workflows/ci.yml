@@ -1,0 +1,103 @@
+name: CI — Test, Build & Push
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# GHCR write permission
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # IMAGE_NAME will be ghcr.io/<owner>/<repo> — lowercase required by GHCR
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test-build-push:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: arista_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      # ── Checkout ──
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Setup ──
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Generate Prisma Client ──
+      # Needed before tsc and tests — the generated types don't exist in @prisma/client yet
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      # ── Type check (lint-like) ──
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      # ── Test ──
+      - name: Run tests
+        run: npm test
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arista_test?schema=public
+          JWT_SECRET: ci-test-jwt-secret-at-least-32-characters-long
+          API_KEYS: admin:ci-admin-key,ops:ci-ops-key,branch:ci-branch-key
+          NODE_ENV: test
+          LOG_LEVEL: error
+          CACHE_TTL: 5
+          APP_VERSION: 1.0.0
+
+      # ── Build TypeScript → dist/ ──
+      - name: Build application
+        run: npm run build
+
+      # ── Docker build & push to GHCR ──
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
