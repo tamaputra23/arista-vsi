@@ -30,7 +30,7 @@ pipeline {
         GHCR_REGISTRY = 'ghcr.io'
         PREVIOUS_IMAGE_TAG = ''
         COMPOSE_PROJECT_NAME = 'arista-vsi'
-        HOMI_DIR = '/home/tama/arista-vsi'
+        HOME_DIR = '/home/tama/arista-vsi'
         SERVICE = 'arista-vsi'
     }
 
@@ -70,7 +70,7 @@ pipeline {
                     echo "Running Prisma migrations..."
 
                     # The app container has prisma migrate in its node_modules
-                    docker compose -f docker compose.prod.yml run --rm \
+                    docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm \
                         -e IMAGE_TAG=deploying \
                         app npx prisma migrate deploy
                 '''
@@ -92,7 +92,7 @@ pipeline {
 
                     sh '''
                         export IMAGE_TAG=deploying
-                        docker compose -f docker compose.prod.yml up -d app db
+                        docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app db
                     '''
                 }
             }
@@ -149,7 +149,7 @@ pipeline {
                 if (env.PREVIOUS_IMAGE_TAG && env.PREVIOUS_IMAGE_TAG != 'none') {
                     sh """
                         export IMAGE_TAG=${env.PREVIOUS_IMAGE_TAG}
-                        docker compose -f docker compose.prod.yml up -d app db
+                        docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app db
                         echo "Rolled back to ${env.PREVIOUS_IMAGE_TAG}"
                     """
                 } else {
