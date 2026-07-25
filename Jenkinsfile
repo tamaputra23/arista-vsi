@@ -35,27 +35,7 @@ pipeline {
     }
 
     stages {
-        stage('Clone') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'github',
-                    usernameVariable: 'GIT_USER',
-                    passwordVariable: 'GIT_TOKEN'
-                )]) {
-                    sh 'git clone --depth 1 https://${GIT_USER}:${GIT_TOKEN}@github.com/${GITHUB_REPO}.git ${BUILD_DIR}'
-                }
-            }
-        }
 
-        stage('Sync Compose File') {
-            steps {
-                sh '''
-                    mkdir -p ${ARISTA_DIR}
-                    cp ${BUILD_DIR}/docker-compose.prod.yml ${ARISTA_DIR}/docker-compose.prod.yml
-                    echo "docker-compose.prod.yml synced to ${ARISTA_DIR}/"
-                '''
-            }
-        }
         // Note: repo is already checked out automatically by "Pipeline script from SCM"
         // No need for an explicit checkout stage.
 
