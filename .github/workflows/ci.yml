@@ -59,13 +59,24 @@ jobs:
       - name: TypeScript type check
         run: npx tsc --noEmit
 
+      # ── Create database tables ──
+      # CI starts with a fresh PostgreSQL container — tables don't exist yet.
+      # prisma db push creates all tables directly from schema.prisma.
+      # (Seed data is handled by tests/helpers/db.ts → seedTestData() in beforeAll)
+      - name: Push database schema
+        run: npx prisma db push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arista_test?schema=public
+
       # ── Test ──
+      # JWT_SECRET and API_KEYS MUST match the TEST_JWT_SECRET and TEST_API_KEYS
+      # in tests/helpers/auth.ts, otherwise all JWT/auth tests fail with 401.
       - name: Run tests
         run: npm test
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/arista_test?schema=public
-          JWT_SECRET: ci-test-jwt-secret-at-least-32-characters-long
-          API_KEYS: admin:ci-admin-key,ops:ci-ops-key,branch:ci-branch-key
+          JWT_SECRET: test-jwt-secret-for-integration-tests-64-chars-long!!
+          API_KEYS: admin:test-admin-api-key,ops:test-ops-api-key,branch:test-branch-api-key
           NODE_ENV: test
           LOG_LEVEL: error
           CACHE_TTL: 5
