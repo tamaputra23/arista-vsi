@@ -101,7 +101,7 @@ pipeline {
                 script {
                     def healthy = false
                     def retries = 12  // 12 * 5s = 60s max wait
-                    def port = env.APP_PORT ?: '3000'
+                    def port = env.APP_PORT ?: '6300'
 
                     for (int i = 0; i < retries; i++) {
                         sleep 5
