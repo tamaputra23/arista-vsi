@@ -26,13 +26,26 @@ app.use(requireJson); // Phase 5: enforce application/json on write methods
 
 // ---- Swagger / OpenAPI docs (public) ----
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+// Patch the server URL based on SWAGGER_URL env var (evaluated at request time)
+function getSpec() {
+  return {
+    ...swaggerSpec,
+    servers: [
+      {
+        url: process.env.SWAGGER_URL || `http://localhost:${process.env.PORT || 6300}`,
+        description: process.env.SWAGGER_URL ? "Production server" : "Development server",
+      },
+    ],
+  };
+}
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(getSpec(), {
   customCss: ".swagger-ui .topbar { display: none }",
   customSiteTitle: "Vehicle Stock API — Docs",
 }));
 app.get("/api-docs.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
-  res.send(swaggerSpec);
+  res.send(getSpec());
 });
 
 // ---- Routes ----
