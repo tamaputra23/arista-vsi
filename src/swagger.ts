@@ -43,8 +43,8 @@ Use the **Authorize** button (🔒) to set both credentials before trying endpoi
     },
     servers: [
       {
-        url: `http://localhost:${env.PORT}`,
-        description: "Development server",
+        url: process.env.SWAGGER_URL || `http://localhost:${env.PORT}`,
+        description: process.env.SWAGGER_URL ? "Production server" : "Development server",
       },
     ],
     tags: [
