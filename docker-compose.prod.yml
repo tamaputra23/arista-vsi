@@ -23,6 +23,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - CACHE_TTL=${CACHE_TTL:-300}
       - APP_VERSION=${APP_VERSION:-1.0.0}
+      - SWAGGER_URL=${SWAGGER_URL:-}
     restart: unless-stopped
     networks:
       - private-net
