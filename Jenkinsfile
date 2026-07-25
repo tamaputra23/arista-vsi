@@ -66,11 +66,7 @@ pipeline {
 
         stage('Database Migration') {
             steps {
-                sh '
-                    docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm \
-                        -e IMAGE_TAG=${IMAGE_TAG} \
-                        app npx prisma migrate deploy
-                '
+                sh 'docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm -e IMAGE_TAG=${IMAGE_TAG} app npx prisma migrate deploy'
             }
         }
 
