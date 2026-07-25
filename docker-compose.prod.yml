@@ -1,0 +1,57 @@
+# ═══════════════════════════════════════════════════
+# Production Docker Compose
+# Used by Jenkins to deploy pre-built images from GHCR.
+#
+# Usage:
+#   IMAGE_TAG=abc1234 docker-compose -f docker-compose.prod.yml up -d
+# ═══════════════════════════════════════════════════
+version: "3.9"
+
+services:
+  app:
+    image: ghcr.io/${GITHUB_REPO:-tamaputra23/arista-vsi}:${IMAGE_TAG:-latest}
+    container_name: vehicle-stock-api
+    ports:
+      - "${APP_PORT:-6300}:6300"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-arista_vsi}?schema=p>
+      - PORT=6300
+      - NODE_ENV=production
+      - API_KEYS=${API_KEYS}
+      - JWT_SECRET=${JWT_SECRET}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - CACHE_TTL=${CACHE_TTL:-300}
+      - APP_VERSION=${APP_VERSION:-1.0.0}
+    depends_on:
+            db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - vehicle-stock-net
+    # No ports exposed to host for db — only app is reachable
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${DB_NAME:-arista_vsi}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-vehicle_stock}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - vehicle-stock-net
+      
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  vehicle-stock-net:
+    driver: bridge

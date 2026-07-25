@@ -30,14 +30,13 @@ pipeline {
         GHCR_REGISTRY = 'ghcr.io'
         PREVIOUS_IMAGE_TAG = ''
         COMPOSE_PROJECT_NAME = 'arista-vsi'
-        HOME_DIR = '/home/tama/arista'
-        SERVICE = 'arista-vsi'
+        HOME_DIR = "${WORKSPACE}"
     }
 
     stages {
 
-        // Note: repo is already checked out automatically by "Pipeline script from SCM"
-        // No need for an explicit checkout stage.
+        // Note: docker-compose.prod.yml is checked out from repo into the workspace.
+        // Using ${WORKSPACE} path works regardless of container mounts.
 
         stage('GHCR Login') {
             steps {
