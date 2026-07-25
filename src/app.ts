@@ -39,13 +39,24 @@ function getSpec() {
   };
 }
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(getSpec(), {
+// Prevent NPM + browser caching of Swagger pages
+app.use("/api-docs", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(null, {
   customCss: ".swagger-ui .topbar { display: none }",
   customSiteTitle: "Vehicle Stock API — Docs",
-  
+  swaggerOptions: {
+    url: "/api-docs.json",
+  },
 }));
 app.get("/api-docs.json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "no-store");
   res.send(getSpec());
 });
 

@@ -95,7 +95,7 @@ pipeline {
                         PREVIOUS_IMAGE_TAG = 'none'
                     }
 
-                    sh 'docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app'
+                    sh 'docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d --force-recreate app'
                 }
             }
         }
@@ -151,7 +151,7 @@ pipeline {
                 if (env.PREVIOUS_IMAGE_TAG && env.PREVIOUS_IMAGE_TAG != 'none') {
                     sh """
                         export IMAGE_TAG=${env.PREVIOUS_IMAGE_TAG}
-                        docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app db
+                        docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d --force-recreate app db
                         echo "Rolled back to ${env.PREVIOUS_IMAGE_TAG}"
                     """
                 } else {
