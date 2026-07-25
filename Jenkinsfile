@@ -10,7 +10,7 @@
  *
  * Prerequisites on Jenkins server:
  *   - Docker + docker-compose installed
- *   - GitHub PAT with read:packages scope stored as Jenkins credential "github-pat"
+ *   - GitHub PAT with read:packages scope stored as Jenkins credential (used by SCM + GHCR login)
  *   - Environment file at /etc/vehicle-stock/.env.production (managed by Jenkins)
  */
 
@@ -29,19 +29,21 @@ pipeline {
         GITHUB_REPO = 'tamaputra23/arista-vsi'           // CHANGE: your GitHub repo
         GHCR_REGISTRY = 'ghcr.io'
         PREVIOUS_IMAGE_TAG = ''
+        COMPOSE_PROJECT_NAME = 'arista-vsi'
+        HOMI_DIR = '/home/tama/arista-vsi'
+        SERVICE = 'arista-vsi'
     }
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
+        // Note: repo is already checked out automatically by "Pipeline script from SCM"
+        // No need for an explicit checkout stage.
 
         stage('GHCR Login') {
             steps {
-                withCredentials([string(credentialsId: 'github-pat', variable: 'GITHUB_PAT')]) {
+                // Uses the SAME Jenkins credential that SCM checkout uses (named 'github')
+                // Replace 'github' below with your actual Jenkins credential ID
+                withCredentials([string(credentialsId: 'github-ghcr', variable: 'GITHUB_PAT')]) {
                     sh '''
                         echo "$GITHUB_PAT" | docker login ${GHCR_REGISTRY} -u ignored --password-stdin
                     '''
