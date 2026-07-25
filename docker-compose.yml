@@ -5,10 +5,10 @@ services:
     build: .
     container_name: vehicle-stock-api
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-6300}:6300"
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-vehicle_stock}?schema=public
-      - PORT=3000
+      - PORT=6300
       - NODE_ENV=${NODE_ENV:-production}
       - API_KEYS=${API_KEYS:-test-key-1}
       - LOG_LEVEL=${LOG_LEVEL:-info}

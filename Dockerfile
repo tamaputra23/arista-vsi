@@ -45,9 +45,9 @@ RUN npx prisma generate
 # Switch to non-root user
 USER nodejs
 
-EXPOSE 3000
+EXPOSE 6300
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/health').then(r => r.json()).then(d => { if (d.status !== 'healthy') process.exit(1) })"
+  CMD node -e "fetch('http://localhost:6300/health').then(r => r.json()).then(d => { if (d.status !== 'healthy') process.exit(1) })"
 
 CMD ["node", "dist/server.js"]

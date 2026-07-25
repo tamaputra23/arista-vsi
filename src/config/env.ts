@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url("DATABASE_URL must be a valid URL"),
-  PORT: z.coerce.number().int().positive().default(3000),
+  PORT: z.coerce.number().int().positive().default(6300),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   API_KEYS: z.string().min(1, "At least one API key is required"),
   LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),

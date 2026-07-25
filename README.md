@@ -74,7 +74,7 @@ Platform ini menerima data kendaraan dari sistem operasional cabang (dealer, gud
            │ POST /api/vehicles│                   │
            ▼                   ▼                   ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                     EXPRESS API (PORT 3000)                  │
+│                     EXPRESS API (PORT 6300)                  │
 │                                                              │
 │  Middleware Pipeline:                                        │
 │  cors → json(1mb) → correlationId → requestLogger           │
@@ -212,8 +212,8 @@ npm run jwt:generate -- --write
 
 # 5. Jalankan
 npm run dev
-# Server berjalan di http://localhost:3000
-# Swagger UI di http://localhost:3000/api-docs
+# Server berjalan di http://localhost:6300
+# Swagger UI di http://localhost:6300/api-docs
 ```
 
 ### Docker (rekomendasi)
@@ -228,7 +228,7 @@ docker-compose up -d
 | Variable | Wajib | Default | Keterangan |
 |---|---|---|---|
 | `DATABASE_URL` | Ya | — | PostgreSQL connection string |
-| `PORT` | Tidak | 3000 | Port server |
+| `PORT` | Tidak | 6300 | Port server |
 | `NODE_ENV` | Tidak | development | `development` / `production` / `test` |
 | `API_KEYS` | Ya | — | Comma-separated `role:key` pairs |
 | `JWT_SECRET` | Ya (Phase 4) | — | Secret untuk HS256 JWT signing/verification |
@@ -260,7 +260,7 @@ API_KEYS="admin:secret-admin-key,ops:secret-ops-key,branch:secret-branch-key"
 
 **Request:**
 ```bash
-curl -X POST http://localhost:3000/api/vehicles \
+curl -X POST http://localhost:6300/api/vehicles \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..." \
   -H "X-API-Key: ZBwdtFQs4DB-vcpt0P0KAVtA6_sT1t3t" \
   -H "Content-Type: application/json" \
@@ -311,7 +311,7 @@ curl -X POST http://localhost:3000/api/vehicles \
 
 **Request:**
 ```bash
-curl "http://localhost:3000/api/vehicles?company_code=PT-AKA&status=READY_STOCK,BOOKED&limit=5&page=1" \
+curl "http://localhost:6300/api/vehicles?company_code=PT-AKA&status=READY_STOCK,BOOKED&limit=5&page=1" \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIs..." \
   -H "X-API-Key: usG95gkLp6Bi4KC6t4S7oE62OmGS0WyT"
 ```
