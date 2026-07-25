@@ -111,7 +111,7 @@ pipeline {
                         sleep 5
                         try {
                             def response = sh(
-                                script: "curl -s -o /dev/null -w '%{http_code}' http://localhost:${port}/health",
+                                script: "curl -s -o /dev/null -w '%{http_code}' http://192.168.100.200:${port}/health",
                                 returnStdout: true
                             ).trim()
                             if (response == '200') {
