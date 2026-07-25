@@ -66,14 +66,11 @@ pipeline {
 
         stage('Database Migration') {
             steps {
-                sh '''
-                    echo "Running Prisma migrations..."
-
-                    # The app container has prisma migrate in its node_modules
+                sh '
                     docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm \
                         -e IMAGE_TAG=${IMAGE_TAG} \
                         app npx prisma migrate deploy
-                '''
+                '
             }
         }
 
