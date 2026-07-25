@@ -6,16 +6,22 @@
  *
  * Parameters:
  *   IMAGE_TAG  — Docker image tag to deploy (default: "latest")
- *                Use the short SHA from GitHub Actions build, e.g. "abc1234"
  *
  * Prerequisites on Jenkins server:
  *   - Docker + docker compose installed
- *   - GitHub PAT with read:packages scope stored as Jenkins credential (used by SCM + GHCR login)
- *   - Environment file at /etc/vehicle-stock/.env.production (managed by Jenkins)
+ *   - GitHub PAT with repo + read:packages scopes, stored as Jenkins credential "github"
+ *   - Server directory /home/tama/arista with docker-compose.prod.yml
  */
 
 pipeline {
     agent any
+
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+        timestamps()
+        skipDefaultCheckout(true)
+    }
 
     parameters {
         string(
@@ -26,23 +32,30 @@ pipeline {
     }
 
     environment {
-        GITHUB_REPO = 'tamaputra23/arista-vsi'           // CHANGE: your GitHub repo
+        GITHUB_REPO = 'tamaputra23/arista-vsi'
         GHCR_REGISTRY = 'ghcr.io'
         PREVIOUS_IMAGE_TAG = ''
         COMPOSE_PROJECT_NAME = 'arista-vsi'
-        HOME_DIR = '/home/tama/arista'
-        SERVICE = 'arista-vsi'
+        ARISTA_DIR = '/home/tama/arista'
+        BUILD_DIR = "/tmp/build-arista-vsi-${env.BUILD_NUMBER}"
     }
 
     stages {
 
-        // Note: repo is already checked out automatically by "Pipeline script from SCM"
-        // No need for an explicit checkout stage.
+        stage('Clone') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'github',
+                    usernameVariable: 'GIT_USER',
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh 'git clone --depth 1 https://${GIT_USER}:${GIT_TOKEN}@github.com/${GITHUB_REPO}.git ${BUILD_DIR}'
+                }
+            }
+        }
 
         stage('GHCR Login') {
             steps {
-                // Uses the SAME Jenkins credential that SCM checkout uses (named 'github')
-                // Replace 'github' below with your actual Jenkins credential ID
                 withCredentials([string(credentialsId: 'github-ghcr', variable: 'GITHUB_PAT')]) {
                     sh '''
                         echo "$GITHUB_PAT" | docker login ${GHCR_REGISTRY} -u ignored --password-stdin
@@ -57,8 +70,6 @@ pipeline {
                     IMAGE="${GHCR_REGISTRY}/${GITHUB_REPO}:${IMAGE_TAG}"
                     echo "Pulling $IMAGE ..."
                     docker pull "$IMAGE"
-
-                    # Tag with a stable name for docker compose
                     docker tag "$IMAGE" "${GHCR_REGISTRY}/${GITHUB_REPO}:deploying"
                 '''
             }
@@ -68,9 +79,7 @@ pipeline {
             steps {
                 sh '''
                     echo "Running Prisma migrations..."
-
-                    # The app container has prisma migrate in its node_modules
-                    docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm \
+                    docker compose -f ${ARISTA_DIR}/docker-compose.prod.yml run --rm \
                         -e IMAGE_TAG=${IMAGE_TAG} \
                         app npx prisma migrate deploy
                 '''
@@ -92,7 +101,7 @@ pipeline {
 
                     sh '''
                         export IMAGE_TAG=${IMAGE_TAG}
-                        docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app db
+                        docker compose -f ${ARISTA_DIR}/docker-compose.prod.yml up -d app db
                     '''
                 }
             }
@@ -102,7 +111,7 @@ pipeline {
             steps {
                 script {
                     def healthy = false
-                    def retries = 12  // 12 * 5s = 60s max wait
+                    def retries = 12
                     def port = env.APP_PORT ?: '6300'
 
                     for (int i = 0; i < retries; i++) {
@@ -114,42 +123,38 @@ pipeline {
                             ).trim()
                             if (response == '200') {
                                 healthy = true
-                                echo "✅ Health check passed (attempt ${i + 1}/${retries})"
+                                echo "Health check passed (attempt ${i + 1}/${retries})"
                                 break
                             } else {
-                                echo "⏳ Health check returned ${response}, retrying... (${i + 1}/${retries})"
+                                echo "Health check returned ${response}, retrying... (${i + 1}/${retries})"
                             }
                         } catch (e) {
-                            echo "⏳ Health check failed (connection refused), retrying... (${i + 1}/${retries})"
+                            echo "Health check failed (connection refused), retrying... (${i + 1}/${retries})"
                         }
                     }
 
                     if (!healthy) {
-                        error("❌ Health check FAILED after ${retries} attempts. Rolling back...")
+                        error("Health check FAILED after ${retries} attempts. Rolling back...")
                     }
                 }
-            }
-        }
-
-        stage('Tag Deployed Image') {
-            steps {
-                sh '''
-                    # Tag the deployed image as the new "latest" if it passed health check
-                    docker tag "${GHCR_REGISTRY}/${GITHUB_REPO}:${IMAGE_TAG}" "${GHCR_REGISTRY}/${GITHUB_REPO}:deployed-$(date +%Y%m%d-%H%M%S)"
-                    echo "✅ Deployment successful — image ${IMAGE_TAG} is now running"
-                '''
             }
         }
     }
 
     post {
+        always {
+            sh 'rm -rf ${BUILD_DIR} || true'
+        }
+        success {
+            echo "Deployment successful — image ${IMAGE_TAG} is now running"
+        }
         failure {
             script {
-                echo "❌ Pipeline failed. Rolling back..."
+                echo "Deployment FAILED. Rolling back..."
                 if (env.PREVIOUS_IMAGE_TAG && env.PREVIOUS_IMAGE_TAG != 'none') {
                     sh """
                         export IMAGE_TAG=${env.PREVIOUS_IMAGE_TAG}
-                        docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app db
+                        docker compose -f ${ARISTA_DIR}/docker-compose.prod.yml up -d app db
                         echo "Rolled back to ${env.PREVIOUS_IMAGE_TAG}"
                     """
                 } else {
@@ -158,7 +163,6 @@ pipeline {
             }
         }
         cleanup {
-            // Clean up the temporary tag
             sh '''
                 docker rmi "${GHCR_REGISTRY}/${GITHUB_REPO}:deploying" 2>/dev/null || true
                 docker logout "${GHCR_REGISTRY}"

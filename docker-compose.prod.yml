@@ -9,12 +9,12 @@ version: "3.9"
 
 services:
   app:
-    image: ghcr.io/${GITHUB_REPO:-tamaputra23/arista-vsi}:${IMAGE_TAG:-latest}
+    image: ghcr.io/${GITHUB_REPO:-owner/vehicle-stock}:${IMAGE_TAG:-latest}
     container_name: vehicle-stock-api
     ports:
       - "${APP_PORT:-6300}:6300"
     environment:
-      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db:5432/${DB_NAME:-arista_vsi}?schema=p>
+      - DATABASE_URL=postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-vehicle_stock}?schema=public
       - PORT=6300
       - NODE_ENV=production
       - API_KEYS=${API_KEYS}
@@ -25,16 +25,18 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      restart: unless-stopped
-      networks:
-        - vehicle-stock-net
-      # No ports exposed to host for db — only app is reachable
+    restart: unless-stopped
+    networks:
+      - vehicle-stock-net
+    # No ports exposed to host for db — only app is reachable
+
   db:
-    image: postgres:16-alpine
+    image: postgres:15-alpine
+    container_name: vehicle-stock-db
     environment:
       - POSTGRES_USER=${DB_USER:-postgres}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
-      - POSTGRES_DB=${DB_NAME:-arista_vsi}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-vehicle_stock}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
