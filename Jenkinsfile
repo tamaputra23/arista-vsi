@@ -63,16 +63,29 @@ pipeline {
             }
         }
 
+        stage('Inject .env') {
+            steps {
+                // Copies the secret file from Jenkins credential store.
+                // The credential ID "arista-vsi" is a Secret file containing .env.production.
+                withCredentials([file(credentialsId: 'arista-vsi', variable: 'ENV_FILE')]) {
+                    sh '''
+                        cp ${ENV_FILE} ${HOME_DIR}/.env
+                        chmod 600 ${HOME_DIR}/.env
+                        echo "=== .env injected (content hidden) ==="
+                    '''
+                }
+            }
+        }
+
         stage('Database Migration') {
             steps {
-                sh 'docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm -e IMAGE_TAG=${IMAGE_TAG} app npx prisma migrate deploy'
+                sh 'docker compose -f ${HOME_DIR}/docker-compose.prod.yml run --rm app npx prisma migrate deploy'
             }
         }
 
         stage('Deploy') {
             steps {
                 script {
-                    // Capture previous image tag for rollback
                     try {
                         PREVIOUS_IMAGE_TAG = sh(
                             script: "docker inspect vehicle-stock-api --format '{{.Config.Image}}' 2>/dev/null || echo 'none'",
@@ -82,10 +95,7 @@ pipeline {
                         PREVIOUS_IMAGE_TAG = 'none'
                     }
 
-                    sh '''
-                        export IMAGE_TAG=${IMAGE_TAG}
-                        docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app db
-                    '''
+                    sh 'docker compose -f ${HOME_DIR}/docker-compose.prod.yml up -d app'
                 }
             }
         }
