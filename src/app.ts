@@ -39,18 +39,16 @@ function getSpec() {
   };
 }
 
-// Prevent NPM + browser caching of Swagger pages
+// No-cache headers for Swagger responses
 app.use("/api-docs", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-  // swagger-ui-express init script only reads `url` from query string.
-  // Auto-redirect so the browser always fetches the spec from /api-docs.json
-  if (!_req.query.url && _req.path === "/" && _req.method === "GET") {
-    return res.redirect("/api-docs/?url=/api-docs.json");
-  }
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
   next();
 });
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(null, {
+// Embed spec directly — no init.js caching issues with Cloudflare
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(getSpec(), {
   customCss: ".swagger-ui .topbar { display: none }",
   customSiteTitle: "Vehicle Stock API — Docs",
 }));

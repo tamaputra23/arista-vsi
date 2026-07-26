@@ -3,27 +3,19 @@ import app from "../../src/app";
 
 describe("Swagger / OpenAPI", () => {
   describe("GET /api-docs", () => {
-    it("should serve Swagger UI HTML page after redirect", async () => {
-      // /api-docs/ redirects to /api-docs/?url=/api-docs.json (302)
-      const res = await request(app).get("/api-docs/?url=/api-docs.json");
+    it("should serve Swagger UI HTML page", async () => {
+      const res = await request(app).get("/api-docs/");
 
       expect(res.status).toBe(200);
       expect(res.headers["content-type"]).toMatch(/html/);
       expect(res.text).toContain("swagger-ui");
     });
 
-    it("should redirect /api-docs to add url param", async () => {
+    it("should redirect /api-docs to /api-docs/", async () => {
       const res = await request(app).get("/api-docs");
 
       expect([301, 302]).toContain(res.status);
       expect(res.headers.location).toContain("/api-docs/");
-    });
-
-    it("should redirect /api-docs/ to add url param", async () => {
-      const res = await request(app).get("/api-docs/");
-
-      expect(res.status).toBe(302);
-      expect(res.headers.location).toBe("/api-docs/?url=/api-docs.json");
     });
 
     it("should serve Swagger UI assets", async () => {
@@ -33,7 +25,7 @@ describe("Swagger / OpenAPI", () => {
     });
 
     it("should be publicly accessible (no auth required)", async () => {
-      const res = await request(app).get("/api-docs/?url=/api-docs.json");
+      const res = await request(app).get("/api-docs/");
 
       expect(res.status).toBe(200);
     });
