@@ -9,8 +9,10 @@ import { invalidateDashboardCache } from "../services/dashboard.service";
 
 const router = Router();
 
-// All vehicle routes require ops or admin auth
-const auth = authenticate(["branch", "ops", "admin"]);
+// POST: branch + admin can ingest
+const postAuth = authenticate(["branch", "admin"]);
+// GET: only ops + admin can view
+const readAuth = authenticate(["ops", "admin"]);
 
 // Rate limiters
 const postVehicleLimiter = createRateLimiter("POST:/api/vehicles");
@@ -23,7 +25,7 @@ const getVehicleDetailLimiter = createRateLimiter("GET:/api/vehicles/detail");
  */
 router.post(
   "/api/vehicles",
-  auth,
+  postAuth,
   postVehicleLimiter,
   validate({ body: createVehicleWithBusinessRules }),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -87,7 +89,7 @@ router.post(
  */
 router.get(
   "/api/vehicles",
-  auth,
+  readAuth,
   getVehiclesLimiter,
   validate({ query: listVehiclesQuerySchema }),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -146,7 +148,7 @@ router.get(
  */
 router.get(
   "/api/vehicles/:external_id",
-  auth,
+  readAuth,
   getVehicleDetailLimiter,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
